@@ -1,0 +1,9 @@
+{
+	"pandocMarkdownPreview.extraPandocArguments": "-F pandoc-crossref --citeproc",
+	"workbench.settings.settingsSearchTocBehavior": "hide",
+	"markdown.extension.toc.unorderedList.marker": "+",
+	"markdown.extension.tableFormatter.enabled": true,
+	"markdown.extension.tableFormatter.normalizeIndentation": true,
+	"markdown.extension.toc.updateOnSave": false,
+	"pandocMd.extraPandocArguments": "-F pandoc-crossref --citeproc"
+}
