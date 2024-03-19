@@ -17,40 +17,14 @@ nocite: |
 	@*
 ---
 
+I am a photographer, I like taking pictures. Especially when I can take pretty pictures. I'm also a gamer. I'd like to transpose my photography skills into the digital realm. Hence, this project.
+
 OpenGL's default camera has a few limitations for would-be virtual photographers. 
 For one, everything in a rendered frame would be in focus.
 <!-- Expand -->
-Depth of field, defined as "the distance between the nearest and the furthest objects that are in acceptably sharp focus in an image captured with a camera" [@ContributorsWikimedia2023], allows for separation of subject and background, enabling clearer compositions (see @fig:lea). Notice also the light spheres present in @fig:lea and @fig:rev. 
-That is bokeh, an effect resulting from how lenses and focusing works that cannot be achieved by applying a simple blurring filter on the background layer.
+Depth of field, defined as "the distance between the nearest and the furthest objects that are in acceptably sharp focus in an image captured with a camera" [@ContributorsWikimedia2023], allows for separation of subject and background, enabling clearer compositions (see @fig:lea). Notice also the pretty balls of light present in @fig:lea and @fig:rev. 
+That is bokeh, an "artifact" of how lenses and focusing works that cannot be achieved by applying a simple blurring filter on the background layer.
 For two, the images are perfectly still. There is no motion blur by default. Conveying a sense of motion in a single frame, as well as creative techniques such as light painting (see @fig:lightpainting) and intentional camera movement (ICM) (see @fig:icm), are thus impossible. 
-
-![Fireworks, an example of lightpainting. (Taken by the author)](http://beta.shadowlerone.ca/assets/full_sized/landscape/20230720__MG_0261.jpg){#fig:lightpainting}
-
-
-<div id="fig:DepthOfField">
-
-![Example of Bokeh](20230614__MG_0719.jpg){#fig:lea}
-
-![Another example of Bokeh](20231220__Z9A0095.jpg){#fig:rev}
-
-<!-- ![Example of creamy background](20221118__YUL1058.jpg){#fig:flowers} -->
-
-
-Examples of DoF (Taken by the author)
-</div>
-
-<div id="fig:icm">
-
-![](20230502-_MG_0264-1.jpg)
-
-![](20240103-BZ9A1135-1.jpg)
-
-Examples of long exposure photography. (Taken by the Author)
-
-</div>
-
-
-<!-- [@Lee2009] -->
 
 \pagebreak
 
@@ -68,7 +42,10 @@ The following is a list of key features I'm aiming to implement.
 - Variable Light Sensitivity (ISO)
 - User Interface
 
-While the goal of the project is to create a "realistic" camera simulator, features will be tweaked to favour aesthetics should the "realistic" option be visually unappealing.
+While the goal of the project is to create a "realistic" camera simulator, features will be tweaked to favour aesthetics should the "realistic" option be visually unpleasant.
+
+
+\pagebreak
 
 ## Stretch Goals
 
@@ -84,6 +61,7 @@ These are the features that, time permitting, I would like to implement, but are
 # Road Map
 
 This section will go into the technical details and potential issues uncovered during preliminary research. 
+Details may change during development.
 
 ## Pretty rendering
 
@@ -148,19 +126,57 @@ Zoom should be relatively simple. Perspective matrix, bam you're done.
 
 > Taking wide angle zooming to the logical extreme.
 
-This may prove a bit more complicated. I consider this a stretch goal. Not every photographer owns, needs, or even wants a fisheye, but they are undeniably cool.
+This may prove a bit more complicated. I consider this a stretch goal. Not every photographer owns, needs, or even wants a fisheye, but they are undeniably cool. Example in @fig:fisheye.
 
-![Fisheye Lens. Source: [@Stuefer2005]](Fisheye_photo.jpg){#fig:fisheye}
 
 <!-- Image -->
 
 > And then push it even further.
 
 I'm not even sure this is doable. Will be explored should I have a massive excess of time.
-
+Example in @fig:360CAM.
 <!-- Image of 360 camera -->
-![Alt 360 Camera. Source: [@StAmant2010]](1024px-197_-_Buenos_Aires_-_Plaza_de_la_Republica_-_Janvier_2010-1.jpg){#fig:360CAM}
 
 ## Autofocus
 
 Display a crosshair on the screen. Whenever the focus button is pressed, calculate the distance from the camera to the geometry intersecting the crosshair and assign that value to the focus distance.
+
+\pagebreak
+
+
+# References
+
+<div id="refs"></div>
+
+\pagebreak
+
+# Appendix: Figures
+
+![Fireworks, an example of lightpainting. (Taken by the author)](http://beta.shadowlerone.ca/assets/full_sized/landscape/20230720__MG_0261.jpg){#fig:lightpainting}
+
+
+<div id="fig:DepthOfField">
+
+![Example of Bokeh](20230614__MG_0719.jpg){#fig:lea}
+
+![Another example of Bokeh](20231220__Z9A0095.jpg){#fig:rev}
+
+<!-- ![Example of creamy background](20221118__YUL1058.jpg){#fig:flowers} -->
+
+
+Examples of DoF (Taken by the author)
+</div>
+
+<div id="fig:icm">
+
+![](20230502-_MG_0264-1.jpg)
+
+![](20240103-BZ9A1135-1.jpg)
+
+Examples of long exposure photography. (Taken by the Author)
+
+</div>
+
+![Fisheye Lens. Source: [@Stuefer2005]](Fisheye_photo.jpg){#fig:fisheye}
+
+![Alt 360 Camera. Source: [@StAmant2010]](1024px-197_-_Buenos_Aires_-_Plaza_de_la_Republica_-_Janvier_2010-1.jpg){#fig:360CAM}
