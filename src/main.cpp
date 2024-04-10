@@ -1,63 +1,103 @@
-/*
-	Let's get a triangle working, with text
-
- */
-
 #include <iostream>
+#include <fstream>
+#include <string>
+#include <stdexcept>
 
-#define GLEW_STATIC 1 // This allows linking with Static Library on Windows, without DLL
+#include <cmath>
 
-// IMPORTANT 1
-#include <GL/glew.h>	// Include GLEW - OpenGL Extension Wrangler
-#include <GLFW/glfw3.h> // GLFW provides a cross-platform interface for creating a graphical context,
-						// initializing OpenGL and binding inputs
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
 
-#include <glm/glm.hpp> // GLM is an optimized math library with syntax to similar to OpenGL Shading Language
+#include <glm/glm.hpp>
+#include <glm/ext/matrix_transform.hpp>
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 
-using namespace std;
+#include "learnopengl/shader.h"
+#include "learnopengl/camera.h"
+#include "learnopengl/stb_image.h"
+// #include <learnopengl/filesystem.h>
+#include "learnopengl/shader_m.h"
+#include "learnopengl/camera.h"
+#include "learnopengl/model.h"
+// #include "Camera.h"
 
-// IMPORTANT 2
-// Debug our opengl calls
-// YOu can extend it to include a text message
-void debug_gl(int place)
+#include "Shape.h"
+#include "Square.h"
+#include "Cube.h"
+
+#include "camera_source.h"
+
+#ifdef WINDOW_WIDTH
+const int width = WINDOW_WIDTH;
+#else
+const int width = 1920;
+#endif
+#ifdef WINDOW_HEIGHT
+const int height = WINDOW_HEIGHT;
+#else
+const int height = 1080;
+#endif
+const float pi = std::acos(-1.0f);
+
+// const std::string phongVertex = "phong.vert.glsl";
+// const std::string phongFragment = "phong.frag.glsl";
+
+// const std::string blinnPhongVertex = "blinnPhong.vert.glsl";
+// const std::string blinnPhongFragment = "blinnPhong.frag.glsl";
+
+// const std::string toonVertex = "toon.vert.glsl";
+// const std::string toonFragment = "toon.frag.glsl";
+
+/* phong.build(phongVertex, phongFragment);
+blinnPhong.build(blinnPhongVertex, blinnPhongFragment);
+toon.build(toonVertex, toonFragment); */
+// Shader phong = Shader(phongVertex.c_str(), phongFragment.c_str());
+// Shader toon = Shader(toonVertex.c_str(), toonFragment.c_str());
+
+void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
-	GLenum e = glGetError();
-	if (e != GL_NO_ERROR)
+	if (action != GLFW_PRESS)
 	{
-		//  cout<<"We have an error! "<<place<<" "<<e<<" "<<getErrorString(e)<<endl;
-		cout << "We have an error! " << place << " " << (void *)e << endl;
+		return;
 	}
+	key_callback(window, key, scancode, action, mods);
 }
 
-// HOW DO WE RENDER? shaders
-const char *getVertexShaderSource()
+unsigned int loadCubemap(vector<std::string> faces)
 {
-	return "#version 330 core  \n"
-		   "layout (location = 0) in vec2 aPos;\n"
-		   ""
-		   "uniform mat2 rotMatrix = mat2(1.0);\n" // default value for view matrix (identity)
-		   "\n"
-		   "void main()\n"
-		   "{\n"
-		   "   gl_Position = vec4(aPos, 0, 1);\n"
-		   "\n"
-		   "}\n";
+	unsigned int textureID;
+	glGenTextures(1, &textureID);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+
+	int width, height, nrChannels;
+	for (unsigned int i = 0; i < faces.size(); i++)
+	{
+		unsigned char *data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
+		if (data)
+		{
+			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+						 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+			stbi_image_free(data);
+		}
+		else
+		{
+			std::cout << "Cubemap tex failed to load at path: " << faces[i] << std::endl;
+			stbi_image_free(data);
+		}
+	}
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+	return textureID;
 }
 
-const char *getFragmentShaderSource()
+int main(int argc, char **argv)
 {
-	return "#version 330 core  \n"
-		   "out vec3 FragColor;"
-		   ""
-		   "void main()"
-		   "{"
-		   "   FragColor = vec3(1, 1, 0);"
-		   "}";
-}
-
-int main(int argc, char *argv[])
-{
-	// Initialize GLFW and OpenGL version
 	glfwInit();
 
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -65,9 +105,8 @@ int main(int argc, char *argv[])
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
-	// Create Window and rendering context using GLFW, resolution is 800x600
-	GLFWwindow *window = glfwCreateWindow(800, 600, "Comp371 - Lab 01", NULL, NULL);
-	if (window == NULL)
+	GLFWwindow *window = glfwCreateWindow(width, height, "Capsule 04 - Toon Shader", nullptr, nullptr);
+	if (window == nullptr)
 	{
 		std::cerr << "Failed to create GLFW window" << std::endl;
 		glfwTerminate();
@@ -84,140 +123,260 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	// Black background
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glfwSetKeyCallback(window, keyCallback);
+	glfwSetScrollCallback(window, scroll_callback);
+	std::cout << "reading 'blinnphong shaders' shader" << endl;
+	Shader blinnPhong = Shader(blinnPhongVertex.c_str(), blinnPhongFragment.c_str());
+	Shader *currentShader = &blinnPhong;
+	camera = Camera();
+	// DEBUG_RIGHT()
+	// currentShader = &blinnPhong;
 
-	// Compile and link shaders here ...
-	int shaderProgram = compileAndLinkShaders(getVertexShaderSource(), getFragmentShaderSource());
+	// todo: figure out
 
-	unsigned int VAO, EBO, VBO;
-	createRenderingData(VAO, VBO, EBO);
+	std::vector<Shape *> shapes;
 
-	glViewport(0, 0, 800, 600);
+	float lastTime = glfwGetTime();
 
-	int compileAndLinkShaders(const char *vertexShaderSource, const char *fragmentShaderSource)
+	float rot = 0.0f;
+
+	glm::mat4 viewProjection;
+
+	Square floor;
+	floor.translate(glm::vec3(0.0f, -0.5f, 0.0f));
+	floor.rotate(-pi / 2, glm::vec3(1.0f, 0.0f, 0.0f));
+	floor.scale(glm::vec3(10.0f));
+
+	shapes.push_back(&floor);
+	// DEBUG_RIGHT()
+	// Cube red;
+	// red.setColor(1.0f, 0.0f, 0.0f);
+
+	// Cube green;
+	// green.setColor(0.0f, 1.0f, 0.0f);
+	// green.translate(glm::vec3(2.0f, 1.0f, 0.5f));
+	// green.rotate(pi / 2, glm::vec3(std::sqrt(2.0f) / 2, std::sqrt(2.0f) / 2, 0.0f));
+	// green.scale(glm::vec3(1.5f));
+
+	// Cube blue;
+	// blue.setColor(0.0f, 0.0f, 1.0f);
+	// blue.translate(glm::vec3(-1.5f, 1.0f, -1.5f));
+	// blue.rotate(-pi / 4, glm::vec3(1.0f, 0.0f, 0.0f));
+
+	// Cube cyan;
+	// cyan.setColor(0.0f, 1.0f, 1.0f);
+	// cyan.translate(glm::vec3(-0.5f, 2.0f, 0.0f));
+	// cyan.rotate(pi / 4, glm::vec3(std::sqrt(2.0f) / 2, std::sqrt(2.0f) / 2, 0.0f));
+
+	// shapes.push_back(&red);
+	// shapes.push_back(&green);
+	// shapes.push_back(&blue);
+	// shapes.push_back(&cyan);
+
+	Model ourModel("assets/models/chess_set_1k.dae");
+	// Model ourModel("assets/models/chess_set_4k.fbx_Scene/chess_set_4k.fbx_Scene.fbx");
+	// Model ourModel("assets/models/chess_set_4k.obj");
+
+	unsigned int skyboxVAO, skyboxVBO;
+	glGenVertexArrays(1, &skyboxVAO);
+	glGenBuffers(1, &skyboxVBO);
+	glBindVertexArray(skyboxVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
+	std::vector<std::string> faces = {
+		"assets/skybox/right.jpg",
+		"assets/skybox/left.jpg",
+		"assets/skybox/top.jpg",
+		"assets/skybox/bottom.jpg",
+		"assets/skybox/front.jpg",
+		"assets/skybox/back.jpg"};
+	unsigned int cubemapTexture = loadCubemap(faces);
+	std::cout << "Loading skybox shader" << std::endl;
+	Shader skyboxShader = Shader("shaders/skybox.vert.glsl", "shaders/skybox.frag.glsl");
+
+	// DEBUG_RIGHT()
+
+	camera.setAspectRatio((float)width / height);
+
+	// DEBUG_RIGHT()
+
+	// camera.Right = glm::normalize(glm::cross(camera.Front, {0.f,1.f,0.f}));
+	// camera.Position = (glm::vec3(0.0f, 1.0f, -5.0f));
+	camera.MouseSensitivity = 0.01f;
+	// DEBUG_RIGHT()
+
+	std::vector<glm::vec3> lightPoss;
+	std::vector<glm::vec3> lightCol;
+
+	lightPoss.push_back({5.0f, 5.0f, 0.0f});
+	lightPoss.push_back({5.0f, 5.0f, 0.0f});
+	lightCol.push_back({1.f, 0.f, 0.f});
+	lightCol.push_back({0.f, 0.f, 1.f});
+	// DEBUG_RIGHT()
+
+	// glm::vec3 lightPos{;
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	glfwSetCursorPosCallback(window, mouse_callback);
+	glEnable(GL_CULL_FACE);
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
+	// DEBUG_RIGHT()
+
+	// glClearColor(0.3f, 0.3f, 0.4f, 1.0f);
+	camera.setFov(FOV(focal_length)); // hijacked
+	// DEBUG_RIGHT()
+
+	// camera.
+	// glm::vec3
+	for (int i = 0; i < lightPoss.size(); i++)
 	{
-		// compile and link shader program
-		// return shader program id
-		// ------------------------------------
+		currentShader->setVec3("pointLights[" + std::to_string(i) + "].position", lightPoss[i]);
 
-		// vertex shader
-		int vertexShader = glCreateShader(GL_VERTEX_SHADER);
-		glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-		glCompileShader(vertexShader);
+		// currentShader->setVec3("pointLights[" + std::to_string(i) + "].ambient", 0.5f * lightCol[i]);
+		// currentShader->setVec3("pointLights[" + std::to_string(i) + "].diffuse", 0.8f * lightCol[i]);
+		// currentShader->setVec3("pointLights[" + std::to_string(i) + "].specular", 1.f * lightCol[i]);
+		currentShader->setVec3("pointLights[" + std::to_string(i) + "].ambient", 0.5f, .5f, .5f);
+		currentShader->setVec3("pointLights[" + std::to_string(i) + "].diffuse", 0.8f, .8f, .8f);
+		currentShader->setVec3("pointLights[" + std::to_string(i) + "].specular", 1.f, 1.f, 1.f);
+		currentShader->setFloat("pointLights[" + std::to_string(i) + "].constant", 1.0f);
+		currentShader->setFloat("pointLights[" + std::to_string(i) + "].linear", 0.09f);
+		currentShader->setFloat("pointLights[" + std::to_string(i) + "].quadratic", 0.032f);
+	}
+	// DEBUG_RIGHT()
 
-		// check for shader compile errors
-		int success;
-		char infoLog[512];
-		glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-		if (!success)
-		{
-			glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-			std::cerr << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n"
-					  << infoLog << std::endl;
-		}
-
-		// fragment shader
-		int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-		glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-		glCompileShader(fragmentShader);
-
-		// check for shader compile errors
-		glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-		if (!success)
-		{
-			glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-			std::cerr << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n"
-					  << infoLog << std::endl;
-		}
-
-		// link shaders
-		int shaderProgram = glCreateProgram();
-		glAttachShader(shaderProgram, vertexShader);
-		glAttachShader(shaderProgram, fragmentShader);
-		glLinkProgram(shaderProgram);
-
-		// check for linking errors
-		glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-		if (!success)
-		{
-			glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-			std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n"
-					  << infoLog << std::endl;
-		}
-
-		return shaderProgram;
+	for (int i = 0; i < ourModel.meshes.size(); i++)
+	{
+		glm::mat4 trans = glm::mat4(1.0f);
+		trans = glm::translate(trans, glm::vec3((i % 8) / 10., glm::floor(i / 8) / 10., 0.0f));
+		ourModel.transforms.push_back(trans);
 	}
 
-	void createRenderingData(unsigned int &VAO, unsigned int &VBO, unsigned int &EBO)
-	{
+	ourModel.transform = glm::rotate(ourModel.transform, glm::radians(-90.f), glm::vec3(1.0, 0.0, .0));
+	// DEBUG_RIGHT()
 
-		// Define and upload geometry to the GPU here ...
-		/* Triangle */
-		float vertices[] = {
-			-0.5f, -0.5f,
-			0.5f, -0.5f,
-			0.0f, 0.5f
-
-		};
-		unsigned int indices[] = {// note that we start from 0!
-								  0, 1, 2
-
-		};
-
-		glGenVertexArrays(1, &VAO);
-		glGenBuffers(1, &VBO);
-		glGenBuffers(1, &EBO);
-		// bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
-		glBindVertexArray(VAO);
-
-		glBindBuffer(GL_ARRAY_BUFFER, VBO);
-		glBufferData(GL_ARRAY_BUFFER, 3 * 2 * sizeof(float), vertices, GL_STATIC_DRAW);
-
-		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
-		glEnableVertexAttribArray(0);
-
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, 3 * sizeof(unsigned int), indices, GL_STATIC_DRAW);
-
-		// note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-		// You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
-		// VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
-		glBindVertexArray(0);
-	}
-
-	// Entering Main Loop
 	while (!glfwWindowShouldClose(window))
 	{
+		// DEBUG_RIGHT()
+		perTick(window);
+		currentShader->use();
 
-		// Each frame, reset color of each pixel to glClearColor
-		glClear(GL_COLOR_BUFFER_BIT);
+		deltaTime = glfwGetTime() - lastTime;
+		lastTime = glfwGetTime();
+		update(deltaTime);
+		// DEBUG_RIGHT()
 
-		glUseProgram(shaderProgram);
+		rot += deltaTime * pi / 2;	  // pi/2 per second
+		rot = std::fmod(rot, 2 * pi); // overflow prevention
 
-		glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
+		lightPoss[0].x = 15 * std::cos(rot);
+		lightPoss[1].y = 10 * std::cos(rot/11.);
+		// DEBUG_RIGHT()
 
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+		// int fragmentFocusDistance = glGetUniformLocation(, "focusDistance");
+		// glUniform1f(fragmentFocusDistance, FOCUS_DISTANCE);
+		// camera.setLookAt(cameraFront);
+		//  camera.Front = glm::vec3(0,0,-1);
+		viewProjection = camera.getProjMatrix() * camera.getViewMatrix();
+		// DEBUG_RIGHT()
 
-		glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
+		currentShader->use();
 
-		debug_gl(35);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		// DEBUG_RIGHT()
 
-		glfwSwapBuffers(window);
+		// currentShader->setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f);
+		// currentShader->setVec3("dirLight.ambient", 0.05f, 0.05f, 0.05f);
+		// currentShader->setVec3("dirLight.diffuse", 0.4f, 0.4f, 0.4f);
+		// currentShader->setVec3("dirLight.specular", 0.5f, 0.5f, 0.5f);
+		// currentShader->setFloat("material.shininess", 32.0f);
 
-		// Detect inputs
+		// for (int i = 0; i < lightPoss.size(); i++)
+		// {
+		// 	currentShader->setVec3("pointLights[" + std::to_string(i) + "].position", lightPoss[i]);
+		// }
+		for (int i = 0; i < lightPoss.size(); i++)
+		{
+			currentShader->setVec3("pointLights[" + std::to_string(i) + "].position", lightPoss[i]);
+
+			currentShader->setVec3("pointLights[" + std::to_string(i) + "].ambient", 0.5f * lightCol[i]);
+			currentShader->setVec3("pointLights[" + std::to_string(i) + "].diffuse", 0.8f * lightCol[i]);
+			currentShader->setVec3("pointLights[" + std::to_string(i) + "].specular", 1.f * lightCol[i]);
+			// currentShader->setVec3("pointLights[" + std::to_string(i) + "].ambient", 0.5f, .5f, .5f);
+			// currentShader->setVec3("pointLights[" + std::to_string(i) + "].diffuse", 0.8f, .8f, .8f);
+			// currentShader->setVec3("pointLights[" + std::to_string(i) + "].specular", 1.f, 1.f, 1.f);
+			currentShader->setFloat("pointLights[" + std::to_string(i) + "].constant", 1.0f);
+			currentShader->setFloat("pointLights[" + std::to_string(i) + "].linear", 0.09f);
+			currentShader->setFloat("pointLights[" + std::to_string(i) + "].quadratic", 0.032f);
+		}
+		// DEBUG_RIGHT()
+
+		// currentShader->setVec3("lightPos", lightPos);
+		currentShader->setFloat("focusDistance", FOCUS_DISTANCE);
+		currentShader->setVec3("viewPos", camera.Position);
+		// DEBUG_RIGHT()
+
+		for (auto shape : shapes)
+		{
+			currentShader->setMat4("mvp", viewProjection * shape->getTransform());
+			currentShader->setMat4("m", shape->getTransform());
+			currentShader->setVec3("objectColor", shape->getColor());
+			shape->draw();
+		}
+		// DEBUG_RIGHT()
+
+		for (int i = 0; i < ourModel.meshes.size(); i++)
+		{
+			currentShader->setMat4("mvp", viewProjection * ourModel.transforms[i] * ourModel.transform);
+
+			currentShader->setMat4("m", ourModel.transforms[i] * ourModel.transform);
+			ourModel.meshes[i].Draw(*currentShader);
+		}
+		// DEBUG_RIGHT()
+
+		// ourModel.Draw(*currentShader);
+
+		//
+
+		// draw skybox as last
+		glDepthFunc(GL_LEQUAL); // change depth function so depth test passes when values are equal to depth buffer's content
+		skyboxShader.use();
+		// view = ; // remove translation from the view matrix
+		skyboxShader.setMat4("view", glm::mat4(glm::mat3(camera.GetViewMatrix())));
+		skyboxShader.setMat4("projection", camera.getProjMatrix());
+		// skybox cube
+		glBindVertexArray(skyboxVAO);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+		glBindVertexArray(0);
+		glDepthFunc(GL_LESS); // set depth function back to default
+
+
+		// blur
+		// DEBUG_RIGHT()
+
+		if (!CAPTURING)
+		{
+			// glClearColor(0.3f, 0.3f, 0.4f, 1.0f);
+			// bloom(10);
+
+			glfwSwapBuffers(window);
+		}
+		else
+		{
+			// glClearColor(0.f, 0.f, 0.f, 1.0f);
+
+			// glClear(GL_COLOR_BUFFER_BIT);
+			glfwSwapBuffers(window);
+		}
+
 		glfwPollEvents();
-
-		/*
-			if escape pressed, exit
-		*/
-		if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-			glfwSetWindowShouldClose(window, true);
 	}
 
-	// Shutdown GLFW
+	currentShader = nullptr;
+
 	glfwTerminate();
 
 	return 0;
