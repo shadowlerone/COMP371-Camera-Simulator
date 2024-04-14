@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 3.8)
 
 project(camera) # The name of your choice for the project comes here
-set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE Debug)
 
 add_definitions(
 	-DTW_STATIC
@@ -36,9 +36,9 @@ set(ALL_LIBS
 
 ELSE()
 
-set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Release)
 
-set(CMAKE_CXX_STANDARD 11) #optional to use c++11
+set(CMAKE_CXX_STANDARD 17) #optional to use c++11
 
 set(CMAKE_PREFIX_PATH
     /encs # For ENCS lab computers
@@ -48,7 +48,8 @@ set(CMAKE_PREFIX_PATH
 
 find_package(OpenGL REQUIRED COMPONENTS OpenGL)
 find_package(GLEW REQUIRED)
-find_package(assimp REQUIRED)
+# find_library(assimp REQUIRED)
+# find_program(assimp REQUIRED)
 find_package(glfw3 REQUIRED
     HINTS /encs/pkg/glfw-3.3.4/root # ENCS installation of glfw
 )
@@ -58,7 +59,7 @@ set(ALL_LIBS
 	OpenGL::GLU
 	GLEW::glew
 	glfw
-	assimp
+	# assimp
 )
 
 ENDIF()
@@ -66,11 +67,22 @@ ENDIF()
 # NOTE: ENCS glm installation is missing links to *.inl files so we need this line
 include_directories(/encs/pkg/glm-0.9.9.8/root/include)
 
+
+# include_directories(assimp/include/assimp)
+
+
 aux_source_directory(src SOURCES)
 AUX_SOURCE_DIRECTORY(src/learnopengl SOURCES)
-AUX_SOURCE_DIRECTORY(src/assimp SOURCES)
+# AUX_SOURCE_DIRECTORY(src/assimp SOURCES)
 add_executable(${PROJECT_NAME} ${SOURCES})
 target_link_libraries(${PROJECT_NAME} ${ALL_LIBS})
+
+target_include_directories(${PROJECT_NAME} PRIVATE assimp/include/assimp)
+
+target_link_libraries(${PROJECT_NAME} assimp)
+
+include_directories(src)
+
 
 add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
                    COMMAND ${CMAKE_COMMAND} -E copy_directory
@@ -78,4 +90,8 @@ add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
 add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
 					COMMAND ${CMAKE_COMMAND} -E copy_directory
 						${CMAKE_SOURCE_DIR}/shaders/ $<TARGET_FILE_DIR:${PROJECT_NAME}>/shaders/)
-	
+
+
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+					COMMAND ${CMAKE_COMMAND} -E copy_directory
+						${CMAKE_SOURCE_DIR}/assimp/bin $<TARGET_FILE_DIR:${PROJECT_NAME}>)

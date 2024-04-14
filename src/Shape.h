@@ -25,6 +25,7 @@ class Shape
 
         void setColor(float r, float g, float b);
         glm::vec3 getColor() const;
+        void resetTransform() {transform = glm::mat4(1.f);}
 
     protected:
         GLuint VAO;

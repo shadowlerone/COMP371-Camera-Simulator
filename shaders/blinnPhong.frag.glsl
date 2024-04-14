@@ -15,6 +15,10 @@ out vec4 color;
 
 uniform vec3 viewPos = vec3(0, 0, 0);
 
+uniform int isLight = 0;
+
+uniform float exposure = 1.0;
+
 uniform vec3 objectColor = vec3(1, 0, 0);
 
 uniform vec3 lightPos = vec3(0, 1, 0);
@@ -32,7 +36,7 @@ void main()
 
     vec3 diffuse;
     // vec4 r = texture(texture_diffuse, TexCoords);
-    vec3 r = vec3(0,0,0);
+    vec3 r = objectColor;
     // result = vec3(0,0,0);
     // NOTE: This if-statement can be replaced with a color ramp image
     // for (int i = 0; i < 2; i++){
@@ -51,11 +55,17 @@ void main()
     //         r += vec4(diffuse,0);
     // }
     
-
-    for(int i = 0; i < 2; i++)
-        r += CalcPointLight(pointLights[i], norm, fragPosition, viewDir);    
-
+	if (isLight ==0) {
+    	for(int i = 0; i < 2; i++)
+        	r += CalcPointLight(pointLights[i], norm, fragPosition, viewDir);    
     color = texture(texture_diffuse, TexCoords) * vec4(r,1);// * objectColor;
+
+	} else {
+		color = vec4(r,1);
+	}
+
+
+    // color = texture(texture_diffuse, TexCoords) * vec4(r,1);// * objectColor;
 }
 
 

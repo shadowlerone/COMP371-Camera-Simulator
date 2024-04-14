@@ -1,6 +1,6 @@
 #ifndef CAMERA_H
 #define CAMERA_H
-
+#include "../utils.h"
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
 
@@ -8,7 +8,7 @@
 
 #include <vector>
 
-#define DEBUG_RIGHT() {std::cout <<  "DEBUG: " << __FILE__ << ":" << __func__ << ":" << __LINE__ << " RIGHT: " << glm::to_string(Right) << std::endl;}
+//#define DEBUG_RIGHT() {std::cout <<  "DEBUG: " << __FILE__ << ":" << __func__ << ":" << __LINE__ << " RIGHT: " << glm::to_string(Right) << std::endl;}
 
 // Defines several possible options for camera movement. Used as abstraction to stay away from window-system specific input methods
 enum Camera_Movement
@@ -73,17 +73,20 @@ public:
 	void setFov(float f)
 	{
 		// DEBUG_RIGHT()
-		std::cout <<  "DEBUG: " << __FILE__ << ":" << __func__ << ":" << __LINE__ << " RIGHT: " << glm::to_string(Right) << std::endl;
+		// std::cout <<  "DEBUG: " << __FILE__ << ":" << __func__ << ":" << __LINE__ << " RIGHT: " << glm::to_string(Right) << std::endl;
 		Zoom = f;
-		std::cout <<  "DEBUG: " << __FILE__ << ":" << __func__ << ":" << __LINE__ << " RIGHT: " << glm::to_string(Right) << std::endl;
+		// std::cout <<  "DEBUG: " << __FILE__ << ":" << __func__ << ":" << __LINE__ << " RIGHT: " << glm::to_string(Right) << std::endl;
 		// DEBUG_RIGHT()
 	}
 	// processes input received from any keyboard-like input system. Accepts input parameter in the form of camera defined ENUM (to abstract it from windowing systems)
 	void ProcessKeyboard(Camera_Movement direction, float dt)
 	{
-		float velocity = MovementSpeed * dt;
+		float velocity = MovementSpeed;
+
+		d("velocity: " <<velocity )
 		// Right = glm::normalize(glm::cross(Front, WorldUp)); // normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
 		// float velocity = .1f;
+		// d("direction: " << direction)
 		if (direction == FORWARD)
 			Position += Front * velocity;
 		if (direction == BACKWARD)
@@ -92,9 +95,8 @@ public:
 			Position -= Right * velocity;
 		if (direction == RIGHT)
 			Position += Right * velocity;
-		std::cout<< "front: "<<glm::to_string(Front) << std::endl;
-		std::cout<< "right: "<<glm::to_string(Right) << std::endl;
-		std::cout<< "position: "<<glm::to_string(Position) << std::endl;
+		d("Position: " << glm::to_string(Position))
+		// d("position: "<<glm::to_string(Position));
 
 	}
 
@@ -103,10 +105,9 @@ public:
 	{
 		xoffset *= MouseSensitivity;
 		yoffset *= MouseSensitivity;
-
-		Yaw += xoffset;
+		std::cout << "Mouse sensitivity: "<< MouseSensitivity << std::endl;
+		// Yaw += xoffset;
 		Pitch += yoffset;
-
 		// make sure that when pitch is out of bounds, screen doesn't get flipped
 		if (constrainPitch)
 		{
@@ -150,17 +151,18 @@ private:
 	{
 		// calculate the new Front vector
 		glm::vec3 front;
-		front.x = cos(glm::radians(Yaw)) * cos(glm::radians(Pitch));
-		front.y = sin(glm::radians(Pitch));
-		front.z = sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));
-		Front = glm::normalize(front);
+        front.x = cos(glm::radians(Yaw)) * cos(glm::radians(Pitch));
+        front.y = sin(glm::radians(Pitch));
+        front.z = sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));
+        Front = glm::normalize(front);
 		// also re-calculate the Right and Up vector
 		Right = glm::normalize(glm::cross(Front, WorldUp)); // normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
-		Up = glm::normalize(glm::cross(Right, Front));
-		std::cout<< "front: "<<glm::to_string(Front) << std::endl;
-		std::cout<< "right: "<<glm::to_string(Right) << std::endl;
-		std::cout<< "up: "<<glm::to_string(Up) << std::endl;
-		std::cout<< "position: "<<glm::to_string(Position) << std::endl;
+		// Up = glm::normalize(glm::cross(Right, Front));
+		Up = WorldUp;
+		// std::cout<< "front: "<<glm::to_string(Front) << std::endl;
+		// std::cout<< "right: "<<glm::to_string(Right) << std::endl;
+		// std::cout<< "up: "<<glm::to_string(Up) << std::endl;
+		// std::cout<< "position: "<<glm::to_string(Position) << std::endl;
 	}
 };
 #endif
