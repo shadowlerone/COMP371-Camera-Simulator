@@ -71,8 +71,9 @@ include_directories(/encs/pkg/glm-0.9.9.8/root/include)
 # include_directories(assimp/include/assimp)
 
 
-aux_source_directory(src SOURCES)
+AUX_SOURCE_DIRECTORY(src SOURCES)
 AUX_SOURCE_DIRECTORY(src/learnopengl SOURCES)
+AUX_SOURCE_DIRECTORY(imgui SOURCES)
 # AUX_SOURCE_DIRECTORY(src/assimp SOURCES)
 add_executable(${PROJECT_NAME} ${SOURCES})
 target_link_libraries(${PROJECT_NAME} ${ALL_LIBS})
@@ -82,6 +83,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE assimp/include/assimp)
 target_link_libraries(${PROJECT_NAME} assimp)
 
 include_directories(src)
+INCLUDE_DIRECTORIES(imgui)
 
 
 add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD

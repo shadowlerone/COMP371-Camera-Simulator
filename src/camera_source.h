@@ -34,7 +34,6 @@
 
 #pragma endregion
 
-
 using namespace std;
 
 // #define DEBUG_RIGHT() {std::cout <<  "DEBUG: " << __FILE__ << ":" << __func__ << ":" << __LINE__ << " RIGHT: " << glm::to_string(camera.Right) << std::endl;}
@@ -68,7 +67,7 @@ float acceleration = 0.1f;
 //  F/8.0
 //  1/60th of a second
 
-//Camera camera;
+// Camera camera;
 
 string APERTURE_STRING;
 string SHUTTER_SPEED_STRING;
@@ -145,6 +144,10 @@ void decr_ISO()
 void set_aperture_string()
 {
 	std::stringstream stream;
+	if (PINHOLE){
+		APERTURE_STRING = "Pinhole";
+		return;
+	}
 	if (APERTURE >= 10)
 	{
 		stream << std::fixed << std::setprecision(0) << APERTURE;
@@ -160,12 +163,21 @@ void set_aperture_string()
 void set_shutter_string()
 {
 	std::stringstream stream;
-	stream << calc_shutter(abs(SHUTTER_INDEX));
+	if(SHUTTER_INDEX < 0) {
+		stream << "1/";
+	}
+	stream << floor(calc_shutter(abs(SHUTTER_INDEX)));
 	if (SHUTTER_INDEX >= 0)
 	{
 		stream << "\"";
 	}
 	SHUTTER_SPEED_STRING = stream.str();
+}
+
+void set_strings()
+{
+	set_aperture_string();
+	set_shutter_string();
 }
 
 void capture_image()
@@ -179,9 +191,9 @@ void capture_image()
 
 void set_brightness()
 {
-	std::cout << BRIGHTNESS << std::endl;
+	// std::cout << BRIGHTNESS << std::endl;
 
-	BRIGHTNESS = pow(2, (SHUTTER_INDEX- INITIAL_SHUTTERSPEED) + (INITIAL_APERTURE - APERTURE_INDEX) + log2(ISO / INITIAL_ISO));
+	BRIGHTNESS = pow(2, (SHUTTER_INDEX - INITIAL_SHUTTERSPEED) + (INITIAL_APERTURE - APERTURE_INDEX) + log2((float)ISO / (float)INITIAL_ISO));
 }
 
 #pragma endregion
@@ -190,8 +202,6 @@ void setup_shader(Shader *currentShader)
 {
 	currentShader->setFloat("focusDistance", FOCUS_DISTANCE);
 }
-
-
 
 #pragma endregion
 

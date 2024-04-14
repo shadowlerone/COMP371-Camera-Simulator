@@ -32,6 +32,10 @@
 #include "constants.h"
 #include "camera_source.h"
 
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+
 #ifdef WINDOW_WIDTH
 const int width = WINDOW_WIDTH;
 #else
@@ -50,7 +54,7 @@ void renderQuad();
 unsigned int loadCubemap(vector<std::string> faces);
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
-void perTick(GLFWwindow *window, Camera camera, float deltaTime);
+void perTick(GLFWwindow *window, Camera &camera, float deltaTime);
 void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 
 int main()
@@ -58,6 +62,8 @@ int main()
 	// return 0;
 	cout << "Greetings!" << endl
 		 << "Initializing glwf!" << endl;
+
+#pragma region GLFW INIT
 	glfwInit();
 
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -67,7 +73,7 @@ int main()
 
 	// cout << "Creating window" << endl;
 	DEBUGLN("Creating window")
-	GLFWwindow *window = glfwCreateWindow(width, height, "Capsule 04 - Toon Shader", nullptr, nullptr);
+	GLFWwindow *window = glfwCreateWindow(width, height, "Camera Simulator", nullptr, nullptr);
 	if (window == nullptr)
 	{
 		std::cerr << "Failed to create GLFW window" << std::endl;
@@ -86,6 +92,21 @@ int main()
 		glfwTerminate();
 		return -1;
 	}
+
+#pragma endregion
+
+#pragma region IMGUI INIT
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO &io = ImGui::GetIO();
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
+	// io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;	  // IF using Docking Branch
+
+	// Setup Platform/Renderer backends
+	ImGui_ImplGlfw_InitForOpenGL(window, true); // Second param install_callback=true will install GLFW callbacks and chain to existing ones.
+	ImGui_ImplOpenGL3_Init();
+#pragma endregion
 
 	DEBUGLN("creating hdr framebuffer object and depth object")
 	unsigned int hdrFBO;
@@ -355,8 +376,8 @@ int main()
 	// glm::vec3 lightPos{;
 
 	// d("setting up mouse callbacks")
-	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-	glfwSetCursorPosCallback(window, mouse_callback);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+	// glfwSetCursorPosCallback(window, mouse_callback);
 
 	// d("enabling opengl depth testing and face culling")
 	glEnable(GL_CULL_FACE);
@@ -397,9 +418,9 @@ int main()
 	// d("setting up hdr shader")
 	hdrShader.use();
 	hdrShader.setInt("hdrBuffer", 0);
-	motionBlurShader.use();
-	motionBlurShader.setInt("scene", 1);
-	motionBlurShader.setInt("prevFrame", 2);
+	/* 	motionBlurShader.use();
+		motionBlurShader.setInt("scene", 1);
+		motionBlurShader.setInt("prevFrame", 2); */
 
 	// d("setting up motionoblur frame buffer object")
 	unsigned int motionBlurFBO[2];
@@ -423,9 +444,73 @@ int main()
 	}
 	// d("hit the loop")
 
+#pragma region camera setup
+
+	set_aperture_string();
+	set_shutter_string();
+	// set_ISO_string();
+
+#pragma endregion
+
 #pragma region LOOP
 	while (!glfwWindowShouldClose(window))
 	{
+		glfwPollEvents();
+#pragma region ImGui
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+		// ImGui::ShowDemoWindow(); // Show demo window! :)
+		{
+			ImGui::Begin("Camera Settings");
+			// ImGui::Text("This is some useful text.");
+			float spacing = ImGui::GetStyle().ItemInnerSpacing.x;
+
+			ImGui::Text("ISO: %d", ISO);
+			ImGui::PushButtonRepeat(true);
+			if (ImGui::ArrowButton("##left", ImGuiDir_Left))
+			{
+				decr_ISO();
+			}
+			ImGui::SameLine(0.0f, spacing);
+			if (ImGui::ArrowButton("##right", ImGuiDir_Right))
+			{
+				incr_ISO();
+			}
+			ImGui::PopButtonRepeat();
+
+			ImGui::Text("Aperture: f/%s", APERTURE_STRING.c_str());
+			ImGui::PushButtonRepeat(true);
+			if (ImGui::ArrowButton("##left", ImGuiDir_Left))
+			{
+				decr_aperture();
+			}
+			ImGui::SameLine(0.0f, spacing);
+			if (ImGui::ArrowButton("##right", ImGuiDir_Right))
+			{
+				incr_aperture();
+			}
+			ImGui::PopButtonRepeat();
+
+			ImGui::Text("Shutter Speed: %s", SHUTTER_SPEED_STRING.c_str());
+			ImGui::PushButtonRepeat(true);
+			if (ImGui::ArrowButton("##left", ImGuiDir_Left))
+			{
+				decr_shutter_speed();
+			}
+			ImGui::SameLine(0.0f, spacing);
+			if (ImGui::ArrowButton("##right", ImGuiDir_Right))
+			{
+				incr_shutter_speed();
+			}
+			ImGui::PopButtonRepeat();
+
+			set_strings();
+			/* 	ImGui::SliderInt("ISO", &ISO, 100, 3200);
+				ImGui::InputInt("Shutter Speed", &SHUTTER_INDEX, MIN_SHUTTER_SPEED_INDEX, MAX_SHUTTER_SPEED_INDEX);
+				ImGui::End(); */
+		}
+#pragma endregion
 		// DEBUG_RIGHT()
 		// // d("===========================================================================")
 		// lblock
@@ -515,6 +600,7 @@ int main()
 #pragma region RENDER
 
 		// d("setting up lights")
+		set_brightness();
 		currentShader->setFloat("exposure", BRIGHTNESS);
 		for (int i = 0; i < lightPoss.size(); i++)
 		{
@@ -606,13 +692,19 @@ int main()
 		}
 		else
 		{
-			// d("rendering motion blur")
+// d("rendering motion blur")
+#pragma region motion blur
 			motionBlurShader.use();
-			glBindFramebuffer(GL_FRAMEBUFFER, motionBlurFBO[frame % 2]);
-			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_2D, colorBuffer);
-			glActiveTexture(GL_TEXTURE2);
-			glBindTexture(GL_TEXTURE_2D, (frame == 0) ? colorBuffer : motionBlurTex[frame % 2]);
+			bool even = frame % 2;
+			glBindFramebuffer(GL_FRAMEBUFFER, motionBlurFBO[even]);
+			if (frame == 0)
+			{
+				glBindTexture(GL_TEXTURE_2D, colorBuffer);
+			}
+			else
+			{
+				glBindTexture(GL_TEXTURE_2D, (frame == 0) ? colorBuffer : motionBlurTex[!even]);
+			}
 			renderQuad();
 
 			// glBindFramebuffer(GL_FRAMEBUFFER, motionBlurFBO[frame % 2]);
@@ -639,18 +731,22 @@ int main()
 			// glClear();
 			// d("returning to main framebuffer")
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			// glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+#pragma endregion
 		}
 		// glfwSwapBuffers(window);
 		// d("swapping framebuffers")
+		ImGui::Render();
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 		glfwSwapBuffers(window);
-
 		// d("polling events")
-		glfwPollEvents();
 	}
 #pragma endregion
 	currentShader = nullptr;
 
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
+	ImGui::DestroyContext();
 	glfwTerminate();
 
 	return 0;
@@ -848,59 +944,68 @@ void mouse_callback(GLFWwindow *window, double xpos, double ypos)
 	// cout << glm::to_string(cameraFront) << endl;
 }
 
-void perTick(GLFWwindow *window, Camera camera, float deltaTime)
+void perTick(GLFWwindow *window, Camera &camera, float deltaTime)
 {
 	// processInput(window);
 	// std::cout << "ticking" << std::endl;
 	// d("ticking")
 	glm::vec3 front;
+	bool triggered = false;
 
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 	{
-		d("moving camera")
-		d("movement direction: forward")
+		triggered = true;
+		// d("moving camera")
+		// d("movement direction: forward")
 		camera.ProcessKeyboard(FORWARD, deltaTime);
 	}
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
 	{
-		d("moving camera")
-		d("movement direction: backward")
+		triggered = true;
+		// d("moving camera")
+		// d("movement direction: backward")
 		camera.ProcessKeyboard(BACKWARD, deltaTime);
 	}
 	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
 	{
-		d("moving camera")
-		d("movement direction: left")
+		triggered = true;
+		// d("moving camera")
+		// d("movement direction: left")
 		camera.ProcessKeyboard(LEFT, deltaTime);
 	}
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 	{
-		d("moving camera")
-		d("movement direction: right")
+		triggered = true;
+		// d("moving camera")
+		// d("movement direction: right")
 		camera.ProcessKeyboard(RIGHT, deltaTime);
 	}
 
 	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
 	{
+		triggered = true;
 		camera.Yaw += velocity;
-		d("camera.Yaw: " << camera.Yaw)
+		// d("camera.Yaw: " << camera.Yaw)
 	}
 
 	if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
 	{
+		triggered = true;
 		camera.Yaw -= velocity;
-		d("camera.Yaw: " << camera.Yaw)
+		// d("camera.Yaw: " << camera.Yaw)
 	}
 	if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
 	{
-		d("moving up")
-			camera.Position += camera.MovementSpeed * camera.Up;
+		triggered = true;
+		// d("moving up")
+		camera.Position += camera.MovementSpeed * deltaTime * camera.Up;
 	}
 	if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS)
 	{
-		d("moving down")
+		triggered = true;
+		// d("moving down")
 
-			camera.Position -= camera.MovementSpeed * camera.Up;
+		camera.Position -= camera.MovementSpeed * deltaTime * camera.Up;
 	}
 
 	front.x = cos(glm::radians(camera.Yaw)) * cos(glm::radians(camera.Pitch));
@@ -908,6 +1013,8 @@ void perTick(GLFWwindow *window, Camera camera, float deltaTime)
 	front.z = sin(glm::radians(camera.Yaw)) * cos(glm::radians(camera.Pitch));
 	camera.Front = glm::normalize(front);
 	camera.Right = glm::normalize(glm::cross(camera.Front, camera.WorldUp)); // normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
+
+	// d("Camera: " << camera)
 }
 
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)

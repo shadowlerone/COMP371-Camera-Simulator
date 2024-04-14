@@ -7,8 +7,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <vector>
+#include <ostream>
 
-//#define DEBUG_RIGHT() {std::cout <<  "DEBUG: " << __FILE__ << ":" << __func__ << ":" << __LINE__ << " RIGHT: " << glm::to_string(Right) << std::endl;}
+// #define DEBUG_RIGHT() {std::cout <<  "DEBUG: " << __FILE__ << ":" << __func__ << ":" << __LINE__ << " RIGHT: " << glm::to_string(Right) << std::endl;}
 
 // Defines several possible options for camera movement. Used as abstraction to stay away from window-system specific input methods
 enum Camera_Movement
@@ -29,6 +30,8 @@ const float ZOOM = 45.0f;
 // An abstract camera class that processes input and calculates the corresponding Euler Angles, Vectors and Matrices for use in OpenGL
 class Camera
 {
+	friend std::ostream &operator<<(std::ostream &os, const Camera &dt);
+
 public:
 	// camera Attributes
 	glm::vec3 Position;
@@ -81,23 +84,22 @@ public:
 	// processes input received from any keyboard-like input system. Accepts input parameter in the form of camera defined ENUM (to abstract it from windowing systems)
 	void ProcessKeyboard(Camera_Movement direction, float dt)
 	{
-		float velocity = MovementSpeed;
+		float velocity = MovementSpeed* dt;
 
-		d("velocity: " <<velocity )
-		// Right = glm::normalize(glm::cross(Front, WorldUp)); // normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
-		// float velocity = .1f;
-		// d("direction: " << direction)
-		if (direction == FORWARD)
-			Position += Front * velocity;
+		// d("velocity: " << velocity)
+			// Right = glm::normalize(glm::cross(Front, WorldUp)); // normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
+			// float velocity = .1f;
+			// d("direction: " << direction)
+			if (direction == FORWARD)
+				Position += Front * velocity;
 		if (direction == BACKWARD)
 			Position -= Front * velocity;
 		if (direction == LEFT)
 			Position -= Right * velocity;
 		if (direction == RIGHT)
 			Position += Right * velocity;
-		d("Position: " << glm::to_string(Position))
+		// d("Position: " << glm::to_string(Position))
 		// d("position: "<<glm::to_string(Position));
-
 	}
 
 	// processes input received from a mouse input system. Expects the offset value in both the x and y direction.
@@ -105,7 +107,7 @@ public:
 	{
 		xoffset *= MouseSensitivity;
 		yoffset *= MouseSensitivity;
-		std::cout << "Mouse sensitivity: "<< MouseSensitivity << std::endl;
+		std::cout << "Mouse sensitivity: " << MouseSensitivity << std::endl;
 		// Yaw += xoffset;
 		Pitch += yoffset;
 		// make sure that when pitch is out of bounds, screen doesn't get flipped
@@ -133,7 +135,7 @@ public:
 
 	glm::mat4 getViewMatrix() const
 	{
-		return glm::lookAt(Position, Position+Front, Up);
+		return glm::lookAt(Position, Position + Front, Up);
 	}
 
 	glm::mat4 getProjMatrix() const
@@ -151,10 +153,10 @@ private:
 	{
 		// calculate the new Front vector
 		glm::vec3 front;
-        front.x = cos(glm::radians(Yaw)) * cos(glm::radians(Pitch));
-        front.y = sin(glm::radians(Pitch));
-        front.z = sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));
-        Front = glm::normalize(front);
+		front.x = cos(glm::radians(Yaw)) * cos(glm::radians(Pitch));
+		front.y = sin(glm::radians(Pitch));
+		front.z = sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));
+		Front = glm::normalize(front);
 		// also re-calculate the Right and Up vector
 		Right = glm::normalize(glm::cross(Front, WorldUp)); // normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
 		// Up = glm::normalize(glm::cross(Right, Front));
@@ -165,4 +167,21 @@ private:
 		// std::cout<< "position: "<<glm::to_string(Position) << std::endl;
 	}
 };
+std::ostream& operator<<(std::ostream& os, const Camera& c)
+{
+    os << "Camera(" << std::endl <<
+		"\tPosition: " << glm::to_string(c.Position) << std::endl <<
+		"\tFront: " << glm::to_string(c.Front) << std::endl <<
+		"\tUp: " << glm::to_string(c.Up) << std::endl <<
+		"\tRight: " << glm::to_string(c.Right) << std::endl <<
+		"\tWorldUp: " << glm::to_string(c.WorldUp) << std::endl <<
+		"\tYaw: " << c.Yaw << std::endl <<
+		"\tPitch: " << c.Pitch << std::endl <<
+		"\tMovementSpeed: " << c.MovementSpeed << std::endl <<
+		"\tMouseSensitivity: " << c.MouseSensitivity << std::endl <<
+		"\tZoom: " << c.Zoom << std::endl <<
+		"\taspectRatio: " << c.aspectRatio << std::endl
+	;
+    return os;
+}
 #endif
