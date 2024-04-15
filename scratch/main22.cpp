@@ -172,8 +172,7 @@ int main()
 			std::cout << "Framebuffer not complete!" << std::endl;
 	}
 	Shader shaderBlur("shaders/7.blur.vs", "shaders/7.blur.fs");
-	shaderBlur.use();
-	shaderBlur.setInt("image", 0);
+	// Shader dof("shaders/7.blur.vs", "shaders/dof.fs");
 #pragma endregion
 
 #pragma region motionblur
@@ -373,8 +372,6 @@ int main()
 	// d("setting up hdr shader")
 	hdrShader.use();
 	hdrShader.setInt("hdrBuffer", 0);
-	hdrShader.setInt("OoFocus", 1);
-	hdrShader.setInt("position", 2);
 	passthroughShader.use();
 	passthroughShader.setInt("hdrBuffer", 0);
 	motionBlurShader.use();
@@ -456,12 +453,6 @@ int main()
 				focal_length = 35;
 			}
 			ImGui::Text("Focus Distance: %.0f%%", FOCUS_DISTANCE * 100);
-
-			ImGui::Text("Camera Positions");
-			ImGui::Text("x: %.3f", camera.Position.x);
-			ImGui::Text("y: %.3f", camera.Position.y);
-			ImGui::Text("z: %.3f", camera.Position.z);
-
 			set_strings();
 
 			/* 	ImGui::SliderInt("ISO", &ISO, 100, 3200);
@@ -575,7 +566,7 @@ int main()
 		}
 #pragma endregion
 #pragma region skybox
-/* 		glDepthFunc(GL_LEQUAL); // change depth function so depth test passes when values are equal to depth buffer's content
+		glDepthFunc(GL_LEQUAL); // change depth function so depth test passes when values are equal to depth buffer's content
 		skyboxShader.use();
 		// view = ; // remove translation from the view matrix
 		skyboxShader.setMat4("view", glm::mat4(glm::mat3(camera.GetViewMatrix())));
@@ -586,7 +577,7 @@ int main()
 		glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 		glBindVertexArray(0);
- */
+
 		// d("done with skybox")
 #pragma endregion
 #pragma endregion
@@ -596,7 +587,6 @@ int main()
 #pragma region hdr
 		glDepthFunc(GL_LESS); // set depth function back to default
 		glBindFramebuffer(GL_FRAMEBUFFER, currentFrameFBO);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		// d("computing hdr image value")
 
@@ -605,13 +595,13 @@ int main()
 		{
 		}
 		// d("rendering hdr output")
-		renderQuad();
+		// renderQuad();
 #pragma endregion
 
 #pragma region DOF
 
 		bool horizontal = true, first_iteration = true;
-		int amount = 30;
+		int amount = 10;
 		shaderBlur.use();
 		for (unsigned int i = 0; i < amount; i++)
 		{
@@ -629,9 +619,8 @@ int main()
 
 		// dof.use();
 
-		
 		hdrShader.use();
-		hdrShader.setInt("pinhole", false);
+		hdrShader.setInt("pinhole", true);
 		hdrShader.setInt("position", 2);
 		hdrShader.setFloat("focus_distance", FOCUS_DISTANCE);
 		glActiveTexture(GL_TEXTURE0);
@@ -668,7 +657,7 @@ int main()
 		{
 #pragma region passthrough
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			// glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			passthroughShader.use();
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, currentFrameColorBuffer);
@@ -836,7 +825,6 @@ void renderQuad()
 		glEnableVertexAttribArray(1);
 		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
 	}
-	// glDisable(GL_DEPTH_TEST);
 	glBindVertexArray(quadVAO);
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	glBindVertexArray(0);
@@ -897,7 +885,6 @@ void perTick(GLFWwindow *window, Camera &camera, float deltaTime)
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 	{
 		triggered = true;
-		// d("")
 		// d("moving camera")
 		// d("movement direction: forward")
 		camera.ProcessKeyboard(FORWARD, deltaTime);

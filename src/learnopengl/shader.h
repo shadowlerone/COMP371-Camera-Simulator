@@ -3,7 +3,7 @@
 
 
 #include <glm/glm.hpp>
-
+#include "../utils.h"
 #include <string>
 #include <fstream>
 #include <sstream>
@@ -18,6 +18,7 @@ public:
     Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath = nullptr)
     {
         // 1. retrieve the vertex/fragment source code from filePath
+		d(vertexPath << ":" << fragmentPath)
         std::string vertexCode;
         std::string fragmentCode;
         std::string geometryCode;

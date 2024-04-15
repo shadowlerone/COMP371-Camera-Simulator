@@ -11,7 +11,8 @@ struct PointLight {
     vec3 diffuse;
     vec3 specular;
 };
-out vec4 color;
+layout (location = 0) out vec4 color;
+layout (location = 1) out vec4 gPosition;
 
 uniform vec3 viewPos = vec3(0, 0, 0);
 
@@ -33,7 +34,7 @@ void main()
 {
     vec3 norm = normalize(normal);
     vec3 viewDir = normalize(viewPos - fragPosition);
-
+	gPosition = gl_FragCoord;
     vec3 diffuse;
     // vec4 r = texture(texture_diffuse, TexCoords);
     vec3 r = objectColor;

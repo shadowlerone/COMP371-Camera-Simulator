@@ -189,10 +189,14 @@ void capture_image()
 	CAPTURING = true;
 }
 
+void calc_exposure() {
+	calc_shutter();
+	calc_aperture();
+}
 void set_brightness()
 {
 	// std::cout << BRIGHTNESS << std::endl;
-
+	calc_exposure();
 	BRIGHTNESS = pow(2, (SHUTTER_INDEX - INITIAL_SHUTTERSPEED) + (INITIAL_APERTURE - APERTURE_INDEX) + log2((float)ISO / (float)INITIAL_ISO));
 }
 

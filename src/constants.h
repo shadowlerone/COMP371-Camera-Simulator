@@ -3,7 +3,7 @@
 
 
 #pragma region constants
-#define MAX_ISO 3200
+#define MAX_ISO 6400
 #define MIN_ISO 100
 #define MAX_APERTURE 32
 #define MAX_APERTURE_INDEX 32
@@ -19,7 +19,7 @@
 
 #define INITIAL_APERTURE 6
 #define INITIAL_SHUTTERSPEED -12
-#define INITIAL_ISO 400
+#define INITIAL_ISO 1600
 
 #define QUALITY 100
 
