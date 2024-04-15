@@ -10,9 +10,9 @@ uniform sampler2D position;
 uniform bool hdr;
 uniform float exposure;
 uniform bool pinhole;
-uniform float aperture = 0.000125;
+uniform float aperture = 1;
 uniform float focus_distance;
-const float offset = 1.0 / 300.0;  
+const float offset = 1.0 / 300.0;
 float near = 0.1;
 float far = 100.0;
 
@@ -33,36 +33,40 @@ void main() {
 	vec2(offset, -offset)  // bottom-right    
 	);
 
-	float kernel[9] = float[](
-    1.0 / 16, 2.0 / 16, 1.0 / 16,
-    2.0 / 16, 4.0 / 16, 2.0 / 16,
-    1.0 / 16, 2.0 / 16, 1.0 / 16  
-);
+	float kernel[9] = float[](1.0 / 16, 2.0 / 16, 1.0 / 16, 2.0 / 16, 4.0 / 16, 2.0 / 16, 1.0 / 16, 2.0 / 16, 1.0 / 16);
 	const float gamma = 2.2;
-	vec3 hdrColor = texture(focus, TexCoords).rgb;
-
+	vec3 hdrColor;
+	vec3 f = texture(focus, TexCoords).rgb;
+	vec3 of = texture(OoFocus, TexCoords).rgb;
 	vec3 pos = texture(position, TexCoords).rgb;
 	float blur_component = abs(LinearizeDepth(focus_distance) - LinearizeDepth(pos.z)) * aperture;
 
 	vec3 sampleTex[9];
-    for(int i = 0; i < 9; i++)
-    {
-        sampleTex[i] = vec3(texture(focus, TexCoords.st + offsets[i]));
-    }
-    vec3 col = vec3(0.0);
-    for(int i = 0; i < 9; i++)
-        col += sampleTex[i] * kernel[i];
-	// FragColor = vec4(OoFocus,1);
-	FragColor = vec4(texture(OoFocus, TexCoords).rgb, 1);
+	for(int i = 0; i < 9; i++) {
+		sampleTex[i] = vec3(texture(focus, TexCoords.st + offsets[i]));
+	}
+	vec3 col = vec3(0.0);
+	for(int i = 0; i < 9; i++) col += sampleTex[i] * kernel[i];
+	// FragColor = vec4(of,1);
+
+	if (pinhole){
+		blur_component = 0;
+	}
+	// FragColor = vec4(of,1);
+	FragColor = vec4(vec3(blur_component), 1);
 	// FragColor = vec4(col,1);
 	// FragColor = vec4(texture(focus, TexCoords).rgb,1);
-// 
-    return;
+	hdrColor = mix(f, of, blur_component);
+	// FragColor = vec4(vec3(mix(f, of, blur_component)),1);
+	vec3 t = col * blur_component*0.3;
+	vec3 l = f*.7 ;
+	// FragColor = vec4(t + l,1 );
+	return;
 	if(hdr) {
         // reinhard
         // vec3 result = hdrColor / (hdrColor + vec3(1.0));
         // exposure
-		vec3 result = vec3(1.0) - exp(-hdrColor * exposure);
+		vec3 result = vec3(1.0) - exp(-hdrColor * exposure); 
         // also gamma correct while we're at it       
 		result = pow(result, vec3(1.0 / gamma));
 		FragColor = vec4(result, 1.0);

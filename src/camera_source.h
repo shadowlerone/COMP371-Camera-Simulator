@@ -49,7 +49,7 @@ int ISO = INITIAL_ISO;
 float SHUTTER_SPEED;
 int SHUTTER_INDEX = INITIAL_SHUTTERSPEED;
 bool AUTO_ISO = true;
-float FOCUS_DISTANCE = 0;
+float FOCUS_DISTANCE = 0.30;
 bool CAPTURING = false;
 float capture_time = 0;
 float focal_length = 35;

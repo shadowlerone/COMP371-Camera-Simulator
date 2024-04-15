@@ -631,9 +631,10 @@ int main()
 
 		
 		hdrShader.use();
-		hdrShader.setInt("pinhole", false);
+		hdrShader.setInt("pinhole", PINHOLE);
 		hdrShader.setInt("position", 2);
 		hdrShader.setFloat("focus_distance", FOCUS_DISTANCE);
+		hdrShader.setFloat("aperture", pow(2, -(0.25*APERTURE)));
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, colorBuffer);
 
